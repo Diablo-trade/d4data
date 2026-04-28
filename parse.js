@@ -1379,6 +1379,7 @@ function parseCombinedMetaFile(fileInfo, index) {
     const alignment = 8;
     let fileDataOffset = 8 + dwFileCount * 8;
     let idx = 0;
+    let skipped = 0;
     for (const snoFileInfo of snoFiles) {
       const originalOffset = fileDataOffset;
       const alignedOffset = (((fileDataOffset + 8 - 1) / alignment) >> 0) * alignment;
@@ -1387,34 +1388,35 @@ function parseCombinedMetaFile(fileInfo, index) {
         fileDataOffset += 8;
       }
 
-      const snoId = file.readInt32LE(fileDataOffset);
-      if (snoId != snoFileInfo.sno) {
-        console.debug(" Reading SNO #", idx, snoFileInfo.sno, "@ offset", fileDataOffset, "size:", snoFileInfo.size);
-        console.debug("  aligning offset", originalOffset, "to", alignedOffset, "Value:", file.readInt32LE(alignedOffset));
-        throw Error(`Invalid offset: ${fileDataOffset}. Value: ${snoId}, expected: ${snoFileInfo.sno}.`);
+      try {
+        const snoId = file.readInt32LE(fileDataOffset);
+        if (snoId != snoFileInfo.sno) {
+          console.debug(" Reading SNO #", idx, snoFileInfo.sno, "@ offset", fileDataOffset, "size:", snoFileInfo.size);
+          console.debug("  aligning offset", originalOffset, "to", alignedOffset, "Value:", file.readInt32LE(alignedOffset));
+          throw Error(`Invalid offset: ${fileDataOffset}. Value: ${snoId}, expected: ${snoFileInfo.sno}.`);
+        }
+
+        const fileName = fileInfo.dirName + '/' + tocGroup[snoId] + '.' + extension;
+        const data = parseFileData(formatHash, file.subarray(fileDataOffset, fileDataOffset + snoFileInfo.size), fileName, index);
+        const newFileName = getOutputFileName(fileName);
+        fs.writeFileSync(newFileName, JSON.stringify(Object.assign({
+          __fileName__: fileName.replace(/^data\//g, ''),
+          __snoID__: snoId,
+        }, data), null, ' ') + '\n');
+        ++success;
+      } catch (err) {
+        console.error(' Skipping #' + idx + ' in ' + fileInfo.fileName + ': ' + err.message);
+        ++skipped;
       }
-
-      const fileName = fileInfo.dirName + '/' + tocGroup[snoId] + '.' + extension;
-      const data = parseFileData(formatHash, file.subarray(fileDataOffset, fileDataOffset + snoFileInfo.size), fileName, index);
-      const newFileName = getOutputFileName(fileName);
-      fs.writeFileSync(newFileName, JSON.stringify(Object.assign({
-        __fileName__: fileName.replace(/^data\//g, ''),
-        __snoID__: snoId,
-      }, data), null, ' ') + '\n');
-      ++success;
-
 
       fileDataOffset += snoFileInfo.size;
       ++idx;
     }
-    console.debug(" contains", idx, "files");
+    console.debug(" contains", idx, "files (" + skipped + " skipped)");
 
   } catch (err) {
     console.error('Error parsing #' + index, fileInfo.fileName);
     console.error(err);
-    fs.writeFileSync(newFileName, JSON.stringify({
-      err,
-    }));
   }
 }
 
