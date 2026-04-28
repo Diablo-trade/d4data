@@ -1,16 +1,1 @@
-{
- "__fileName__": "base/meta/Aspect/Asp_Legendary_Sorc_115.asp",
- "__snoID__": 1211017,
- "__type__": "AspectDefinition",
- "__typeHash__": 3495291529,
- "snoAffix": {
-  "__raw__": 1224681,
-  "__group__": 104,
-  "__type__": "DT_SNO",
-  "__typeHash__": 2764331143,
-  "__targetFileName__": "base/meta/Affix/legendary_sorc_115.aff",
-  "groupName": "Affix",
-  "name": "legendary_sorc_115"
- },
- "hIconOverride": 2870518028
-}
+{"err":{}}
